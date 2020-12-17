@@ -1,0 +1,27 @@
+#!/bin/bash
+# list=$(~/mbin/all_pwd.sh)
+
+which pgrep > /dev/null || (echo "please install pgrep" && exit 1)
+
+# list all shell process cwd
+echo "found shells to copy to:"
+if [ $(uname) == "Darwin" ];then
+	# like bash
+	# local shell=$1
+	shell=$(dscl . -read $HOME UserShell | awk -F/ '{print $NF}')
+	# no / proc on mac
+	list=$(pgrep -l $shell | xargs -L 1 ~/mbin/mac_pid_path | grep -v "$PWD\|$HOME$" | sort -u)
+else
+	shell=$(grep ˆ$USER: /etc/passwd| awk -F: '{print $NF}' | awk -F/ '{print $NF}')
+	list=$(pgrep -l $shell | cut -f 1 -d ' '| xargs -i  readlink -f /proc/{}/cwd | grep -v "$PWD\|$HOME$" | sort -u)
+fi
+
+select out in $list
+do
+	break
+done
+
+[[ -z $out ]] && echo "Cancelled." && exit 0
+
+echo "# cp -iv $@ $out/."
+cp -iv $@ $out/.
